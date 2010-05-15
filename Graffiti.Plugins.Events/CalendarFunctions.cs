@@ -231,7 +231,7 @@ namespace Graffiti.Plugins.Events
 			return posts.FindAll(delegate(Post post)
 			{
 				DateTime eventDate = DateTime.Parse(post.Custom("Event Date"));
-				return eventDate.Month == month && eventDate.Year == year;
+				return eventDate.Month == month && eventDate.Year == year && !post.IsDeleted;
 			});
 		}
 
