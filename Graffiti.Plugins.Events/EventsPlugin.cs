@@ -23,6 +23,9 @@ namespace Graffiti.Plugins.Events
 		private readonly string startTimeFieldName = "Start Time";
 		private readonly string endTimeFieldName = "End Time";
 		private readonly string eventCategoryName = "Events";
+		private readonly string startDateFieldName = "Start Date";
+		private readonly string endDateFieldName = "End Date";
+
 
 		public bool EnableEvents { get; set; }
 
@@ -84,6 +87,8 @@ namespace Graffiti.Plugins.Events
 			bool eventDateFieldExists = false;
 			bool startTimeFieldExists = false;
 			bool endTimeFieldExists = false;
+			bool startDateFieldExists = false;
+			bool endDateFieldExists = false;
 
 			CustomFormSettings cfs = CustomFormSettings.Get(eventCategory, false);
 			if (cfs.Fields != null && cfs.Fields.Count > 0)
@@ -102,8 +107,16 @@ namespace Graffiti.Plugins.Events
 					{
 						endTimeFieldExists = true;
 					}
+					if (!startDateFieldExists && Util.AreEqualIgnoreCase(startDateFieldName, cf.Name))
+					{
+						startDateFieldExists = true;
+					}
+					if (!endDateFieldExists && Util.AreEqualIgnoreCase(endDateFieldName, cf.Name))
+					{
+						endDateFieldExists = true;
+					}
 
-					if (eventDateFieldExists && startTimeFieldExists && endTimeFieldExists)
+					if (eventDateFieldExists && startTimeFieldExists && endTimeFieldExists && endDateFieldExists && startDateFieldExists)
 					{
 						break;
 					}
@@ -117,7 +130,7 @@ namespace Graffiti.Plugins.Events
 				dateField.Description = "The date that the event takes place on";
 				dateField.Enabled = true;
 				dateField.Id = Guid.NewGuid();
-				dateField.FieldType = FieldType.DateTime;
+				dateField.FieldType = FieldType.Date;
 
 				cfs.Name = eventCategory.Id.ToString();
 				cfs.Add(dateField);
@@ -149,6 +162,34 @@ namespace Graffiti.Plugins.Events
 
 				cfs.Name = eventCategory.Id.ToString();
 				cfs.Add(endField);
+				cfs.Save();
+			}
+
+			if (!startDateFieldExists)
+			{
+				CustomField startDateField = new CustomField();
+				startDateField.Name = startDateFieldName;
+				startDateField.Description = "The start date for the event";
+				startDateField.Enabled = true;
+				startDateField.Id = Guid.NewGuid();
+				startDateField.FieldType = FieldType.Date;
+
+				cfs.Name = eventCategory.Id.ToString();
+				cfs.Add(startDateField);
+				cfs.Save();
+			}
+
+			if (!endDateFieldExists)
+			{
+				CustomField endDateField = new CustomField();
+				endDateField.Name = endDateFieldName;
+				endDateField.Description = "The end date for the event";
+				endDateField.Enabled = true;
+				endDateField.Id = Guid.NewGuid();
+				endDateField.FieldType = FieldType.Date;
+
+				cfs.Name = eventCategory.Id.ToString();
+				cfs.Add(endDateField);
 				cfs.Save();
 			}
 		}
