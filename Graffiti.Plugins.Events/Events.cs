@@ -14,8 +14,10 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using DataBuddy;
 using Graffiti.Core;
+using System.Text;
 
 namespace Graffiti.Plugins.Events
 {
@@ -38,7 +40,17 @@ namespace Graffiti.Plugins.Events
 
 		public DateTime EventDate(Post post)
 		{
-			return CalendarFunctions.TryDateTimeParse(post.CustomFields()["Event Date"]);
+			return post.GetEventDate();
+		}
+
+		public DateTime StartDate(Post post)
+		{
+			return post.GetStartDate();
+		}
+
+		public DateTime EndDate(Post post)
+		{
+			return post.GetEndDate();
 		}
 
 		public string PostMonthUrl(Post post)
@@ -47,7 +59,22 @@ namespace Graffiti.Plugins.Events
 			return String.Format("{0}?d={1}{2}", post.Category.Url, eventDate.Year.ToString().PadLeft(4, '0'), eventDate.Month.ToString().PadLeft(2, '0'));
 		}
 
+		public PostCollection UpcomingEvents()
+		{
+			return UpcomingEvents(-1);
+		}
+
+		public PostCollection UpcomingEvents(string tag)
+		{
+			return UpcomingEvents(tag, -1);
+		}
+
 		public PostCollection UpcomingEvents(int count)
+		{
+			return UpcomingEvents(null, count);
+		}
+
+		public PostCollection UpcomingEvents(string tag, int count)
 		{
 			CategoryController cc = new CategoryController();
 			Category eventCategory = cc.GetCachedCategory("Events", true);
@@ -61,20 +88,52 @@ namespace Graffiti.Plugins.Events
 
 			PostCollection posts = PostCollection.FetchByQuery(query);
 
-			List<Post> eventPosts = posts.FindAll(delegate(Post p)
-			{
-				DateTime postDate = DateTime.Parse(p.Custom("Event Date"));
-				return postDate >= DateTime.Today;
-			});
+			List<Post> eventPosts = posts
+				.Where(p => p.IsInFuture())
+				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag))
+				.OrderBy(p => p.GetEffectiveDate()).ToList();
 
-			eventPosts.Sort(delegate(Post p1, Post p2)
-			{
-				DateTime p1Date = DateTime.Parse(p1.Custom("Event Date"));
-				DateTime p2Date = DateTime.Parse(p2.Custom("Event Date"));
-				return p1Date.CompareTo(p2Date);
-			});
+			count = count > eventPosts.Count || count == -1 ? eventPosts.Count : count;
+			eventPosts = eventPosts.GetRange(0, count);
+			PostCollection ret = new PostCollection();
+			ret.AddRange(eventPosts);
+			return ret;
+		}
 
-			count = count > eventPosts.Count ? eventPosts.Count : count;
+		public PostCollection PastEvents()
+		{
+			return PastEvents(-1);
+		}
+
+		public PostCollection PastEvents(string tag)
+		{
+			return PastEvents(tag, -1);
+		}
+
+		public PostCollection PastEvents(int count)
+		{
+			return PastEvents(null, count);
+		}
+
+		public PostCollection PastEvents(string tag, int count)
+		{
+			CategoryController cc = new CategoryController();
+			Category eventCategory = cc.GetCachedCategory("Events", true);
+
+			DataBuddy.Table table = new DataBuddy.Table("graffiti_posts", "PostCollection");
+			Query query = new Query(table);
+			query.Top = "100 PERCENT *";
+
+			Column categoryColumn = new Column("CategoryId", DbType.Int32, typeof(Int32), "CategoryId", false, false);
+			query.AndWhere(categoryColumn, eventCategory.Id, Comparison.Equals);
+
+			PostCollection posts = PostCollection.FetchByQuery(query);
+
+			List<Post> eventPosts = posts.Where(p => p.IsInPast())
+				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag))
+				.OrderByDescending(p => p.GetEffectiveDate()).ToList();
+
+			count = count > eventPosts.Count || count == -1 ? eventPosts.Count : count;
 			eventPosts = eventPosts.GetRange(0, count);
 			PostCollection ret = new PostCollection();
 			ret.AddRange(eventPosts);
@@ -124,8 +183,33 @@ namespace Graffiti.Plugins.Events
 
 		public string MiniCalendar(Post post)
 		{
-			DateTime eventDate = DateTime.Parse(post.Custom("Event Date"));
-			return CalendarFunctions.BuildCalendar(false, eventDate.Year, eventDate.Month, post);
+			DateTime eventDate = post.GetEventDate();
+			if (eventDate != DateTime.MinValue)
+			{
+				return CalendarFunctions.BuildCalendar(false, eventDate.Year, eventDate.Month, post);
+			}
+			else
+			{
+				DateTime startDate = post.GetStartDate();
+				DateTime endDate = post.GetEndDate();
+
+				StringBuilder sb = new StringBuilder();
+				int year = startDate.Year;
+				int month = startDate.Month;
+
+				do
+				{
+					sb.AppendLine(CalendarFunctions.BuildCalendar(false, year, month, post));
+					++month;
+					if (month == 13)
+					{
+						month = 1;
+						++year;
+					}
+				} while (year < endDate.Year || (year >= endDate.Year && month < endDate.Month));
+
+				return sb.ToString();
+			}
 		}
 
 		public string Calendar()

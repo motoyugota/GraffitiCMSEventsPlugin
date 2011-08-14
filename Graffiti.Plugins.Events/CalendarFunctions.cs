@@ -121,15 +121,11 @@ namespace Graffiti.Plugins.Events
 					week = new HtmlTableRow();
 					weekIndex = 0;
 				}
-
-				bool isEventDate = false;
+				
 				DateTime date = new DateTime(year, month, d);
-				if (eventPost != null && date == DateTime.Parse(eventPost.Custom("Event Date")))
-				{
-					isEventDate = true;
-				}
+				bool isEventDate = eventPost != null && eventPost.IsOnDate(date);
 
-				AddDayContent(week, BuildDay(monthPosts, d, showEvents, isEventDate));
+				AddDayContent(week, BuildDay(monthPosts, date, showEvents, isEventDate));
 				++weekIndex;
 			}
 
@@ -155,16 +151,12 @@ namespace Graffiti.Plugins.Events
 			return stringWriter.ToString();
 		}
 
-		private static HtmlTableCell BuildDay(List<Post> monthPosts, int day, bool showEvents, bool isEventDate)
+		private static HtmlTableCell BuildDay(List<Post> monthPosts, DateTime date, bool showEvents, bool isEventDate)
 		{
 			HtmlTableCell dayCell = new HtmlTableCell();
 
-			dayCell.Controls.Add(new LiteralControl("<div class=\"calendarDate\">" + day.ToString() + "</div>"));
-			List<Post> dayPosts = monthPosts.FindAll(delegate(Post post)
-			{
-				DateTime eventDate = DateTime.Parse(post.Custom("Event Date"));
-				return eventDate.Day == day;
-			});
+			dayCell.Controls.Add(new LiteralControl("<div class=\"calendarDate\">" + date.Day.ToString() + "</div>"));
+			List<Post> dayPosts = monthPosts.FindAll(p => p.IsOnDate(date));
 
 			if (isEventDate)
 			{
@@ -230,8 +222,9 @@ namespace Graffiti.Plugins.Events
 
 			return posts.FindAll(delegate(Post post)
 			{
-				DateTime eventDate = DateTime.Parse(post.Custom("Event Date"));
-				return eventDate.Month == month && eventDate.Year == year && !post.IsDeleted;
+				DateTime firstOfMonth = new DateTime(year, month, 1);
+				DateTime lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
+				return !post.IsDeleted && post.IsInRange(firstOfMonth, lastOfMonth);
 			});
 		}
 
