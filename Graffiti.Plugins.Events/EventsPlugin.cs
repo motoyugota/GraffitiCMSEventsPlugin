@@ -28,6 +28,7 @@ namespace Graffiti.Plugins.Events
 
 
 		public bool EnableEvents { get; set; }
+		public string CalendarFeeds { get; set; }
 
 		public override bool IsEditable
 		{
@@ -46,6 +47,13 @@ namespace Graffiti.Plugins.Events
 
 		public override void Init(GraffitiApplication ga)
 		{
+			// TODO: Do this on application start (when there is an application start event hook)
+			ga.LoadGraffitiContext += new GraffitiContextEventHandler(ga_LoadGraffitiContext);
+		}
+
+		private void ga_LoadGraffitiContext(GraffitiContext context, EventArgs e)
+		{
+			context["calendarFeeds"] = CalendarFeeds;
 		}
 
 		protected override FormElementCollection AddFormElements()
@@ -53,6 +61,7 @@ namespace Graffiti.Plugins.Events
 			FormElementCollection fec = new FormElementCollection();
 
 			fec.Add(new CheckFormElement("enableEvents", "Enable Events", "Allows you to mark posts as Events, which will then show up in an event calendar", false));
+			fec.Add(new TextAreaFormElement("calendarFeeds", "Calendar Feed", "Enter URLs for .ics calendar files to include in your calendar", 5));
 
 			return fec;
 		}
@@ -60,13 +69,15 @@ namespace Graffiti.Plugins.Events
 		protected override System.Collections.Specialized.NameValueCollection DataAsNameValueCollection()
 		{
 			NameValueCollection nvc = new NameValueCollection();
-			nvc["enableEvents"] = this.EnableEvents.ToString();
+			nvc["enableEvents"] = EnableEvents == null ? "" : EnableEvents.ToString();
+			nvc["calendarFeeds"] = CalendarFeeds == null ? "" : CalendarFeeds.ToString();
 			return nvc;
 		}
 
 		public override StatusType SetValues(System.Web.HttpContext context, NameValueCollection nvc)
 		{
 			this.EnableEvents = CalendarFunctions.ConvertStringToBool(nvc["enableEvents"]);
+			this.CalendarFeeds = nvc["calendarFeeds"];
 
 			if (this.EnableEvents)
 			{

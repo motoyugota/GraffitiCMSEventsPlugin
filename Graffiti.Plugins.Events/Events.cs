@@ -18,6 +18,9 @@ using System.Linq;
 using DataBuddy;
 using Graffiti.Core;
 using System.Text;
+using System.Web.UI.WebControls;
+using System.Web.UI;
+using System.IO;
 
 namespace Graffiti.Plugins.Events
 {
@@ -91,6 +94,7 @@ namespace Graffiti.Plugins.Events
 			List<Post> eventPosts = posts
 				.Where(p => p.IsInFuture())
 				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag))
+				.Union(Utility.LoadFeedEvents(DateTime.Today, DateTime.MaxValue).ToPosts())
 				.OrderBy(p => p.GetEffectiveDate()).ToList();
 
 			count = count > eventPosts.Count || count == -1 ? eventPosts.Count : count;
@@ -129,8 +133,10 @@ namespace Graffiti.Plugins.Events
 
 			PostCollection posts = PostCollection.FetchByQuery(query);
 
-			List<Post> eventPosts = posts.Where(p => p.IsInPast())
+			List<Post> eventPosts = posts
+				.Where(p => p.IsInPast())
 				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag))
+				.Union(Utility.LoadFeedEvents(DateTime.MinValue, DateTime.Today).ToPosts())
 				.OrderByDescending(p => p.GetEffectiveDate()).ToList();
 
 			count = count > eventPosts.Count || count == -1 ? eventPosts.Count : count;
@@ -228,6 +234,21 @@ namespace Graffiti.Plugins.Events
 			ret += CalendarFunctions.BuildCalendar(true, year, month, null);
 
 			return ret;
+		}
+
+		public string ExternalEventLink(Post post)
+		{
+			return RenderControl(Utility.ExternalEventLink(post));
+		}
+
+		private string RenderControl(Control ctrl)
+		{
+			StringBuilder sb = new StringBuilder();
+			StringWriter tw = new StringWriter(sb);
+			HtmlTextWriter hw = new HtmlTextWriter(tw);
+
+			ctrl.RenderControl(hw);
+			return sb.ToString();
 		}
 	}
 }

@@ -180,10 +180,19 @@ namespace Graffiti.Plugins.Events
 					foreach (Post post in dayPosts)
 					{
 						HtmlGenericControl eventListItem = new HtmlGenericControl("li");
-						HyperLink eventLink = new HyperLink();
-						eventLink.Text = post.Title;
-						eventLink.NavigateUrl = post.Url;
-						eventListItem.Controls.Add(eventLink);
+
+						if (post.ContentType == "External")
+						{
+							eventListItem.Controls.Add(Utility.ExternalEventLink(post));
+						}
+						else
+						{
+							HyperLink eventLink = new HyperLink();
+							eventLink.Text = post.Title;
+							eventLink.NavigateUrl = post.Url;
+							eventListItem.Controls.Add(eventLink);
+						}
+
 						eventList.Controls.Add(eventListItem);
 					}
 					dayCell.Controls.Add(eventList);
@@ -220,12 +229,15 @@ namespace Graffiti.Plugins.Events
 
 			PostCollection posts = PostCollection.FetchByQuery(query);
 
-			return posts.FindAll(delegate(Post post)
+			List<Post> postList = posts.FindAll(delegate(Post post)
 			{
 				DateTime firstOfMonth = new DateTime(year, month, 1);
 				DateTime lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
 				return !post.IsDeleted && post.IsInRange(firstOfMonth, lastOfMonth);
 			});
+			postList.AddRange(Utility.LoadFeedEvents(DateTime.Today, DateTime.MaxValue).ToPosts());
+
+			return postList;
 		}
 
 		private static int TryIntParse(string value, int defaultValue)
