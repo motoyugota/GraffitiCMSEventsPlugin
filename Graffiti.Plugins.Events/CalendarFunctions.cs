@@ -229,13 +229,13 @@ namespace Graffiti.Plugins.Events
 
 			PostCollection posts = PostCollection.FetchByQuery(query);
 
+			DateTime firstOfMonth = new DateTime(year, month, 1);
+			DateTime lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
 			List<Post> postList = posts.FindAll(delegate(Post post)
 			{
-				DateTime firstOfMonth = new DateTime(year, month, 1);
-				DateTime lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
 				return !post.IsDeleted && post.IsInRange(firstOfMonth, lastOfMonth);
 			});
-			postList.AddRange(Utility.LoadFeedEvents(DateTime.Today, DateTime.MaxValue).ToPosts());
+			postList.AddRange(Utility.LoadFeedEvents(firstOfMonth, lastOfMonth).ToPosts());
 
 			return postList;
 		}

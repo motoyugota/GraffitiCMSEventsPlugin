@@ -93,9 +93,14 @@ namespace Graffiti.Plugins.Events
 
 			List<Post> eventPosts = posts
 				.Where(p => p.IsInFuture())
-				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag))
-				.Union(Utility.LoadFeedEvents(DateTime.Today, DateTime.MaxValue).ToPosts())
-				.OrderBy(p => p.GetEffectiveDate()).ToList();
+				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag)).ToList();
+
+			if (String.IsNullOrEmpty(tag))
+			{
+				eventPosts.AddRange(Utility.LoadFeedEvents(DateTime.Today, DateTime.MaxValue).ToPosts());
+			}
+
+			eventPosts = eventPosts.OrderBy(p => p.GetEffectiveDate()).ToList();
 
 			count = count > eventPosts.Count || count == -1 ? eventPosts.Count : count;
 			eventPosts = eventPosts.GetRange(0, count);
@@ -135,9 +140,14 @@ namespace Graffiti.Plugins.Events
 
 			List<Post> eventPosts = posts
 				.Where(p => p.IsInPast())
-				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag))
-				.Union(Utility.LoadFeedEvents(DateTime.MinValue, DateTime.Today).ToPosts())
-				.OrderByDescending(p => p.GetEffectiveDate()).ToList();
+				.Where(p => String.IsNullOrEmpty(tag) || p.TagList.Contains(tag)).ToList();
+
+			if (String.IsNullOrEmpty(tag))
+			{
+				eventPosts.AddRange(Utility.LoadFeedEvents(DateTime.MinValue, DateTime.Today.AddDays(1)).ToPosts());
+			}
+
+			eventPosts = eventPosts.OrderByDescending(p => p.GetEffectiveDate()).ToList();
 
 			count = count > eventPosts.Count || count == -1 ? eventPosts.Count : count;
 			eventPosts = eventPosts.GetRange(0, count);
